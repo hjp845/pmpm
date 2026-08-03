@@ -25,6 +25,7 @@ export interface Task {
   priority: Priority;
   urgency: number;
   importance: number;
+  sort_order: number;
   due_date: string | null;
   created_at: string;
   done_at: string | null;

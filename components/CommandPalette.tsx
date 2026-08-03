@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { useProjects } from "@/lib/hooks";
 
 const PAGES = [
-  { href: "/", label: "대시보드", emoji: "🏠" },
   { href: "/overview", label: "한눈에", emoji: "👀" },
+  { href: "/", label: "대시보드", emoji: "🏠" },
   { href: "/projects", label: "프로젝트", emoji: "📁" },
   { href: "/board", label: "칸반보드", emoji: "📋" },
   { href: "/calendar", label: "캘린더", emoji: "🗓️" },
