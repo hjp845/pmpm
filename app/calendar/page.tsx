@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useProjects, useTasks, todayStr } from "@/lib/hooks";
 import { PRIORITY_META } from "@/lib/types";
-import { Spinner } from "@/components/ui";
+import { Spinner, Icon } from "@/components/ui";
 
 const DAY_HEADERS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -41,7 +41,7 @@ export default function CalendarPage() {
   const eventsByDate = useMemo(() => {
     const map = new Map<
       string,
-      { kind: "task" | "project"; label: string; emoji: string; color: string; done?: boolean; priority?: string }[]
+      { kind: "task" | "project"; label: string; emoji: string; icon: string | null; color: string; done?: boolean; priority?: string }[]
     >();
     for (const t of tasks ?? []) {
       if (!t.due_date) continue;
@@ -52,6 +52,7 @@ export default function CalendarPage() {
         kind: "task",
         label: t.title,
         emoji: proj?.emoji ?? "📥",
+        icon: proj?.icon ?? null,
         color: proj?.color ?? "#a78bfa",
         done: t.status === "done",
         priority: t.priority,
@@ -66,6 +67,7 @@ export default function CalendarPage() {
         kind: "project",
         label: `${p.name} 마감`,
         emoji: p.emoji,
+        icon: p.icon,
         color: p.color,
       });
       map.set(key, arr);
@@ -151,7 +153,7 @@ export default function CalendarPage() {
                           background: `color-mix(in oklab, ${e.color} 22%, transparent)`,
                         }}
                       >
-                        {e.emoji} {e.label}
+                        <Icon emoji={e.emoji} icon={e.icon} /> {e.label}
                       </span>
                     ))}
                     {events.length > 2 && (
@@ -193,7 +195,7 @@ export default function CalendarPage() {
                       background: `color-mix(in oklab, ${e.color} 22%, transparent)`,
                     }}
                   >
-                    {e.emoji}
+                    <Icon emoji={e.emoji} icon={e.icon} />
                   </span>
                   <div className="min-w-0">
                     <p

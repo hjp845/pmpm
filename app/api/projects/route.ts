@@ -25,10 +25,10 @@ export async function POST(req: Request) {
   const sql = db();
   const b = await req.json();
   const rows = await sql`
-    INSERT INTO projects (name, emoji, color, status, description, deadline, tags, position)
+    INSERT INTO projects (name, emoji, color, status, description, deadline, tags, icon, position)
     VALUES (${b.name}, ${b.emoji ?? "🌱"}, ${b.color ?? "#a78bfa"},
             ${b.status ?? "planning"}, ${b.description ?? ""},
-            ${b.deadline ?? null}, ${b.tags ?? []},
+            ${b.deadline ?? null}, ${b.tags ?? []}, ${b.icon ?? null},
             (SELECT COALESCE(MAX(position), 0) + 1 FROM projects))
     RETURNING *
   `;

@@ -39,6 +39,29 @@ export function refresh(...keys: string[]) {
   all.forEach((k) => globalMutate(k));
 }
 
+// 업로드 이미지를 정사각형 데이터 URL로 리사이즈 (아이콘용)
+export async function fileToIconDataUrl(file: File, size = 128): Promise<string> {
+  const img = await createImageBitmap(file);
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  const s = Math.min(img.width, img.height);
+  ctx.drawImage(
+    img,
+    (img.width - s) / 2,
+    (img.height - s) / 2,
+    s,
+    s,
+    0,
+    0,
+    size,
+    size,
+  );
+  img.close();
+  return canvas.toDataURL("image/webp", 0.85);
+}
+
 export const todayStr = () => new Date().toISOString().slice(0, 10);
 
 export function daysUntil(dateStr: string | null): number | null {

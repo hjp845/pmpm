@@ -12,6 +12,7 @@ export interface Project {
   deadline: string | null;
   pinned: boolean;
   tags: string[];
+  icon: string | null;
   position: number;
   created_at: string;
   task_total: number;

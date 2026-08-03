@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api, refresh, useProjects } from "@/lib/hooks";
+import { useEffect, useRef, useState } from "react";
+import { api, refresh, useProjects, fileToIconDataUrl } from "@/lib/hooks";
 import {
   STATUS_META,
   PROJECT_COLORS,
@@ -21,16 +21,18 @@ interface FormState {
   description: string;
   deadline: string;
   tags: string;
+  icon: string | null;
 }
 
 const emptyForm: FormState = {
   name: "",
-  emoji: "🚀",
+  emoji: "🌱",
   color: PROJECT_COLORS[8],
   status: "planning",
   description: "",
   deadline: "",
   tags: "",
+  icon: null,
 };
 
 export function ProjectModal({
@@ -44,6 +46,7 @@ export function ProjectModal({
 }) {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
   const { data: projects } = useProjects();
 
@@ -59,6 +62,7 @@ export function ProjectModal({
             description: editing.description ?? "",
             deadline: editing.deadline?.slice(0, 10) ?? "",
             tags: (editing.tags ?? []).join(", "),
+            icon: editing.icon ?? null,
           }
         : { ...emptyForm, ...pickProjectLook(projects ?? []) },
     );
@@ -82,6 +86,7 @@ export function ProjectModal({
         status: form.status,
         description: form.description,
         deadline: form.deadline || null,
+        icon: form.icon,
         tags: form.tags
           .split(",")
           .map((t) => t.trim())
@@ -111,10 +116,15 @@ export function ProjectModal({
     >
       <div className="flex flex-col gap-4">
         <div className="flex gap-3">
-          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-3xl text-4xl"
+          <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-3xl text-4xl"
             style={{ background: `color-mix(in oklab, ${form.color} 25%, transparent)` }}
           >
-            {form.emoji}
+            {form.icon ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={form.icon} alt="" className="h-full w-full object-cover" />
+            ) : (
+              form.emoji
+            )}
           </div>
           <div className="flex-1">
             <label className="label">이름</label>
@@ -129,14 +139,48 @@ export function ProjectModal({
         </div>
 
         <div>
-          <label className="label">아이콘 고르기</label>
+          <div className="mb-1 flex items-center justify-between">
+            <label className="label mb-0">아이콘 고르기</label>
+            <div className="flex gap-1.5">
+              <button
+                className="chip"
+                onClick={() => fileRef.current?.click()}
+              >
+                🖼️ 이미지 업로드
+              </button>
+              {form.icon && (
+                <button className="chip" onClick={() => set("icon", null)}>
+                  ↩️ 이모지로 되돌리기
+                </button>
+              )}
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (!f) return;
+                try {
+                  set("icon", await fileToIconDataUrl(f));
+                } catch {
+                  toast("이미지를 읽을 수 없어요 🥲", "⚠️");
+                }
+              }}
+            />
+          </div>
           <div className="flex flex-wrap gap-1">
             {PROJECT_EMOJIS.map((e) => (
               <button
                 key={e}
-                onClick={() => set("emoji", e)}
+                onClick={() => {
+                  set("emoji", e);
+                  set("icon", null);
+                }}
                 className={`pressable grid h-9 w-9 place-items-center rounded-xl text-lg ${
-                  form.emoji === e
+                  form.emoji === e && !form.icon
                     ? "bg-accent-soft ring-2 ring-[var(--accent)]"
                     : "hover:bg-card-2"
                 }`}

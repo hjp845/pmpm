@@ -4,7 +4,7 @@ import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useProjects, api, refresh, ddayLabel, daysUntil } from "@/lib/hooks";
 import { STATUS_META, type Project, type ProjectStatus } from "@/lib/types";
-import { ConfirmDialog, EmptyState, Spinner } from "@/components/ui";
+import { ConfirmDialog, EmptyState, Spinner, Icon } from "@/components/ui";
 import { ProjectModal } from "@/components/ProjectModal";
 import { useToast } from "@/components/Toast";
 
@@ -46,7 +46,7 @@ function ProjectCard({
           className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-2xl"
           style={{ background: `color-mix(in oklab, ${p.color} 22%, transparent)` }}
         >
-          {p.emoji}
+          <Icon emoji={p.emoji} icon={p.icon} />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">

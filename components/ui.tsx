@@ -102,6 +102,28 @@ export function EmptyState({
   );
 }
 
+// 프로젝트 아이콘: 업로드 이미지가 있으면 이미지, 없으면 이모지
+export function Icon({
+  emoji,
+  icon,
+  className = "",
+}: {
+  emoji: string;
+  icon?: string | null;
+  className?: string;
+}) {
+  if (!icon) return <>{emoji}</>;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={icon}
+      alt=""
+      draggable={false}
+      className={`inline-block h-[1.25em] w-[1.25em] rounded-[0.3em] object-cover align-[-0.2em] ${className}`}
+    />
+  );
+}
+
 export function Spinner() {
   return (
     <div className="flex justify-center py-16">

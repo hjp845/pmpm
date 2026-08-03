@@ -17,6 +17,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
       status = COALESCE(${b.status ?? null}, status),
       description = COALESCE(${b.description ?? null}, description),
       deadline = CASE WHEN ${b.deadline !== undefined} THEN ${b.deadline ?? null}::date ELSE deadline END,
+      icon = CASE WHEN ${b.icon !== undefined} THEN ${b.icon ?? null} ELSE icon END,
       pinned = COALESCE(${b.pinned ?? null}, pinned),
       tags = COALESCE(${b.tags ?? null}, tags)
     WHERE id = ${Number(id)}

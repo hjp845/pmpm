@@ -15,7 +15,7 @@ import {
 import { useSWRConfig } from "swr";
 import { useProjects, useTasks, api, refresh, ddayLabel, daysUntil } from "@/lib/hooks";
 import { STATUS_META, pickProjectLook, type Project, type Task } from "@/lib/types";
-import { Spinner, ConfirmDialog } from "@/components/ui";
+import { Spinner, ConfirmDialog, Icon } from "@/components/ui";
 import { ProjectModal } from "@/components/ProjectModal";
 import { useToast } from "@/components/Toast";
 
@@ -200,7 +200,17 @@ function Matrix({
                   transition: `width .12s, height .12s, ${moveTransition}`,
                 }}
               >
-                {proj?.emoji ?? "📥"}
+                {proj?.icon ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={proj.icon}
+                    alt=""
+                    draggable={false}
+                    className="pointer-events-none h-full w-full rounded-md object-cover"
+                  />
+                ) : (
+                  (proj?.emoji ?? "📥")
+                )}
               </button>
               {showLabels && (
                 <span
@@ -375,7 +385,7 @@ function ProjectTaskCard({
           className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-lg"
           style={{ background: `color-mix(in oklab, ${color} 22%, transparent)` }}
         >
-          {project?.emoji ?? "📥"}
+          {project ? <Icon emoji={project.emoji} icon={project.icon} /> : "📥"}
         </span>
         <div className="min-w-0 flex-1">
           <h3 className="flex items-center gap-1 truncate text-sm font-bold">
@@ -917,7 +927,7 @@ export default function OverviewPage() {
                   className="h-3 w-3 rounded-[4px]"
                   style={{ background: p.color }}
                 />
-                {p.emoji} {p.name}
+                <Icon emoji={p.emoji} icon={p.icon} /> {p.name}
               </span>
             ))}
             <span className="flex items-center gap-1.5 text-xs text-ink-2">

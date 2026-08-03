@@ -9,7 +9,7 @@ import {
   type Task,
   type TaskStatus,
 } from "@/lib/types";
-import { Modal, ConfirmDialog, Spinner } from "@/components/ui";
+import { Modal, ConfirmDialog, Spinner, Icon } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 
 const COLUMNS: { key: TaskStatus; label: string; emoji: string }[] = [
@@ -355,7 +355,8 @@ export default function BoardPage() {
                             color: "var(--ink)",
                           }}
                         >
-                          {proj.emoji} {proj.name}
+                          <Icon emoji={proj.emoji} icon={proj.icon} />{" "}
+                          {proj.name}
                         </span>
                       )}
                       {t.due_date && t.status !== "done" && (

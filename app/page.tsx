@@ -13,7 +13,7 @@ import {
 } from "@/lib/hooks";
 import { STATUS_META, type Task } from "@/lib/types";
 import { DonutChart, WeekBars } from "@/components/charts";
-import { Spinner, EmptyState } from "@/components/ui";
+import { Spinner, EmptyState, Icon } from "@/components/ui";
 import { useToast } from "@/components/Toast";
 
 const DAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
@@ -185,7 +185,7 @@ export default function DashboardPage() {
                         background: `color-mix(in oklab, ${p.color} 22%, transparent)`,
                       }}
                     >
-                      {p.emoji}
+                      <Icon emoji={p.emoji} icon={p.icon} />
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-bold">{p.name}</p>
@@ -237,7 +237,8 @@ export default function DashboardPage() {
                       <p className="truncate text-sm font-semibold">{t.title}</p>
                       {proj && (
                         <p className="text-xs text-muted">
-                          {proj.emoji} {proj.name}
+                          <Icon emoji={proj.emoji} icon={proj.icon} />{" "}
+                          {proj.name}
                         </p>
                       )}
                     </div>
