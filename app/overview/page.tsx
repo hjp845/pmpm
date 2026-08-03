@@ -17,6 +17,7 @@ import { useProjects, useTasks, api, refresh, ddayLabel, daysUntil } from "@/lib
 import { STATUS_META, pickProjectLook, type Project, type Task } from "@/lib/types";
 import { Spinner, ConfirmDialog, Icon } from "@/components/ui";
 import { ProjectModal } from "@/components/ProjectModal";
+import { FlowBoard } from "@/components/FlowBoard";
 import { useToast } from "@/components/Toast";
 
 const INBOX_COLOR = "#a78bfa";
@@ -286,6 +287,7 @@ interface CardProps {
   onQuickAdd: (projectId: number | null, title: string) => Promise<void>;
   onToggleDone: (t: Task) => void;
   onDeleteTask: (t: Task) => void;
+  onRestoreTask: (t: Task) => void;
   onEditProject?: () => void;
   onDeleteProject?: () => void;
   onTogglePin?: () => void;
@@ -304,6 +306,7 @@ function ProjectTaskCard({
   onQuickAdd,
   onToggleDone,
   onDeleteTask,
+  onRestoreTask,
   onEditProject,
   onDeleteProject,
   onTogglePin,
@@ -312,6 +315,7 @@ function ProjectTaskCard({
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [overIdx, setOverIdx] = useState<number | null>(null);
+  const [showDone, setShowDone] = useState(false);
 
   useEffect(() => {
     if (dragTask === null) setOverIdx(null);
@@ -320,7 +324,10 @@ function ProjectTaskCard({
   const open = tasks
     .filter((t) => t.status !== "done")
     .sort((a, b) => a.sort_order - b.sort_order || a.id - b.id);
-  const doneCount = tasks.length - open.length;
+  const doneTasks = tasks
+    .filter((t) => t.status === "done")
+    .sort((a, b) => ((a.done_at ?? "") < (b.done_at ?? "") ? 1 : -1));
+  const doneCount = doneTasks.length;
   const color = project?.color ?? INBOX_COLOR;
 
   const submit = async () => {
@@ -523,6 +530,49 @@ function ProjectTaskCard({
         )}
       </ul>
 
+      {doneCount > 0 && (
+        <div className="mt-1.5">
+          <button
+            onClick={() => setShowDone((v) => !v)}
+            className="pressable flex w-full items-center gap-1.5 rounded-lg px-1.5 py-1 text-[11px] font-bold text-muted hover:bg-card-2"
+          >
+            <span>{showDone ? "▾" : "▸"}</span>✅ 완료 {doneCount}개
+          </button>
+          {showDone && (
+            <ul className="mt-0.5 flex flex-col">
+              {doneTasks.map((t) => (
+                <li
+                  key={t.id}
+                  className="group/done flex items-center gap-1.5 rounded-lg px-1.5 py-1"
+                >
+                  <span className="grid h-[16px] w-[16px] shrink-0 place-items-center rounded-full bg-[var(--st-good)] text-[8px] text-white">
+                    ✓
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-xs text-muted line-through">
+                    {t.title}
+                  </span>
+                  <button
+                    onClick={() => onRestoreTask(t)}
+                    aria-label="복구"
+                    title="다시 할 일로"
+                    className="pressable grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] opacity-0 transition-opacity hover:bg-card-2 group-hover/done:opacity-100"
+                  >
+                    ↩️
+                  </button>
+                  <button
+                    onClick={() => onDeleteTask(t)}
+                    aria-label="삭제"
+                    className="pressable grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] opacity-0 transition-opacity hover:bg-card-2 group-hover/done:opacity-100"
+                  >
+                    🗑️
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       <div className="mt-2 flex items-center gap-1.5">
         <input
           className="input py-2 text-[13px]"
@@ -712,6 +762,20 @@ export default function OverviewPage() {
     toast(`「${t.title}」 완료!`, "🎉");
   };
 
+  const restoreTask = async (t: Task) => {
+    mutate(
+      "/api/tasks",
+      (curr: Task[] | undefined) =>
+        (curr ?? []).map((x) =>
+          x.id === t.id ? { ...x, status: "todo" as const, done_at: null } : x,
+        ),
+      { revalidate: false },
+    );
+    await api("PATCH", `/api/tasks/${t.id}`, { status: "todo" });
+    refresh("/api/tasks", "/api/projects");
+    toast(`「${t.title}」 을(를) 다시 할 일로 옮겼어요`, "↩️");
+  };
+
   const deleteTask = async (t: Task) => {
     mutate(
       "/api/tasks",
@@ -819,6 +883,7 @@ export default function OverviewPage() {
     onQuickAdd: quickAdd,
     onToggleDone: toggleDone,
     onDeleteTask: deleteTask,
+    onRestoreTask: restoreTask,
   };
 
   return (
@@ -944,6 +1009,9 @@ export default function OverviewPage() {
           </p>
         </div>
       </div>
+
+      {/* business flow board */}
+      <FlowBoard projects={visibleProjects} />
 
       <ProjectModal
         open={projModalOpen}

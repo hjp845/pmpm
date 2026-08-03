@@ -41,6 +41,17 @@ export interface Note {
   created_at: string;
 }
 
+export interface Stage {
+  id: number;
+  name: string;
+  position: number;
+}
+
+export interface StageCheck {
+  project_id: number;
+  stage_id: number;
+}
+
 export interface Activity {
   id: number;
   type: string;

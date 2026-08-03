@@ -75,6 +75,48 @@ await sql`
   )
 `;
 
+await sql`
+  CREATE TABLE IF NOT EXISTS stages (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    position INT NOT NULL DEFAULT 0
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS project_stage_checks (
+    project_id INT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    stage_id INT NOT NULL REFERENCES stages(id) ON DELETE CASCADE,
+    checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (project_id, stage_id)
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT
+  )
+`;
+
+const [{ count: stageCount }] = await sql`SELECT COUNT(*)::int AS count FROM stages`;
+if (stageCount === 0) {
+  const stageNames = [
+    "🔍 시장조사·아이템 검증",
+    "✍️ 네이밍·브랜딩",
+    "🌐 도메인·채널 개설",
+    "🛠️ MVP 제작",
+    "💳 결제·정산 연결",
+    "📣 광고·트래킹 연결",
+    "🚀 출시",
+    "🤝 레퍼럴 시스템 도입",
+    "📈 지표 분석·수익화",
+  ];
+  for (let i = 0; i < stageNames.length; i++) {
+    await sql`INSERT INTO stages (name, position) VALUES (${stageNames[i]}, ${i + 1})`;
+  }
+}
+
 const [{ count }] = await sql`SELECT COUNT(*)::int AS count FROM projects`;
 if (count > 0) {
   console.log(`Tables ready. ${count} project(s) already exist — skipping seed.`);

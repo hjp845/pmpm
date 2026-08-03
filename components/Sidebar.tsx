@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRef } from "react";
 import { ThemeToggle } from "./ThemeToggle";
+import { useSettings, api, refresh, fileToIconDataUrl } from "@/lib/hooks";
+import { useToast } from "./Toast";
 
 const NAV = [
   { href: "/overview", label: "한눈에", emoji: "👀" },
@@ -15,23 +18,76 @@ const NAV = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: settings } = useSettings();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
+  const logo = settings?.logo;
+
+  const uploadLogo = async (f: File) => {
+    try {
+      const url = await fileToIconDataUrl(f, 128);
+      await api("PATCH", "/api/settings", { key: "logo", value: url });
+      refresh("/api/settings");
+      toast("로고를 교체했어요!", "🎨");
+    } catch {
+      toast("이미지를 읽을 수 없어요 🥲", "⚠️");
+    }
+  };
+
+  const resetLogo = async () => {
+    await api("PATCH", "/api/settings", { key: "logo", value: null });
+    refresh("/api/settings");
+    toast("기본 로고로 돌아왔어요", "🧸");
+  };
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-line bg-card/70 p-4 backdrop-blur-xl md:flex">
-      <Link
-        href="/"
-        className="group/logo mb-8 flex items-center gap-2.5 px-2 pt-2"
-      >
-        <span className="wiggle-hover text-3xl">🧸</span>
-        <div>
+      <div className="group/logo mb-8 flex items-center gap-2.5 px-2 pt-2">
+        <button
+          onClick={() => fileRef.current?.click()}
+          title="클릭해서 로고 이미지 교체"
+          className="pressable relative shrink-0"
+        >
+          {logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logo}
+              alt="로고"
+              className="h-10 w-10 rounded-2xl object-cover shadow-sm"
+            />
+          ) : (
+            <span className="wiggle-hover block text-3xl">🧸</span>
+          )}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (f) uploadLogo(f);
+          }}
+        />
+        <Link href="/overview" className="min-w-0">
           <div className="font-display bg-gradient-to-r from-accent to-accent-2 bg-clip-text text-2xl text-transparent">
             모아모아
           </div>
           <div className="text-[11px] font-medium text-muted">
             내 모든 프로젝트를 한눈에
           </div>
-        </div>
-      </Link>
+        </Link>
+        {logo && (
+          <button
+            onClick={resetLogo}
+            title="기본 로고로"
+            className="pressable ml-auto hidden h-6 w-6 place-items-center rounded-full text-[11px] text-muted hover:bg-card-2 group-hover/logo:grid"
+          >
+            ↩️
+          </button>
+        )}
+      </div>
 
       <nav className="flex flex-col gap-1.5">
         {NAV.map((item) => {

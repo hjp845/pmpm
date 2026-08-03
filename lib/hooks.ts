@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR, { mutate as globalMutate } from "swr";
-import type { Project, Task, Note, Activity } from "./types";
+import type { Project, Task, Note, Activity, Stage, StageCheck } from "./types";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -16,6 +16,15 @@ export function useNotes() {
 }
 export function useActivities() {
   return useSWR<Activity[]>("/api/activities", fetcher);
+}
+export function useStages() {
+  return useSWR<Stage[]>("/api/stages", fetcher);
+}
+export function useStageChecks() {
+  return useSWR<StageCheck[]>("/api/stage-checks", fetcher);
+}
+export function useSettings() {
+  return useSWR<Record<string, string>>("/api/settings", fetcher);
 }
 
 export async function api(
@@ -35,7 +44,14 @@ export async function api(
 export function refresh(...keys: string[]) {
   const all = keys.length
     ? keys
-    : ["/api/projects", "/api/tasks", "/api/notes", "/api/activities"];
+    : [
+        "/api/projects",
+        "/api/tasks",
+        "/api/notes",
+        "/api/activities",
+        "/api/stages",
+        "/api/stage-checks",
+      ];
   all.forEach((k) => globalMutate(k));
 }
 
