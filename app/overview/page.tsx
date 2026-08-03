@@ -58,6 +58,18 @@ function Matrix({
   const boxRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ id: number; last: Pos } | null>(null);
   const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [showLabels, setShowLabels] = useState(true);
+
+  useEffect(() => {
+    setShowLabels(localStorage.getItem("moamoa-matrix-labels") !== "off");
+  }, []);
+
+  const toggleLabels = () => {
+    setShowLabels((v) => {
+      localStorage.setItem("moamoa-matrix-labels", v ? "off" : "on");
+      return !v;
+    });
+  };
 
   const posOf = (t: Task): Pos =>
     posOverride[t.id] ?? { u: t.urgency, i: t.importance };
@@ -98,9 +110,21 @@ function Matrix({
 
   return (
     <div className="card p-5">
-      <div className="mb-2 flex items-baseline justify-between">
+      <div className="mb-2 flex items-center justify-between gap-2">
         <h2 className="font-display text-lg">긴급 × 중요 매트릭스 🎯</h2>
-        <span className="text-xs text-muted">네모를 끌어서 우선순위를 정해요</span>
+        <div className="flex items-center gap-2">
+          <span className="hidden text-xs text-muted sm:inline">
+            네모를 끌어서 우선순위를 정해요
+          </span>
+          <button
+            className="chip"
+            data-on={showLabels}
+            onClick={toggleLabels}
+            title="할 일 이름 라벨 표시/숨김"
+          >
+            🏷️ 라벨 {showLabels ? "ON" : "OFF"}
+          </button>
+        </div>
       </div>
 
       <p className="mb-1 select-none text-[11px] font-bold tracking-widest text-muted">
@@ -178,19 +202,22 @@ function Matrix({
               >
                 {proj?.emoji ?? "📥"}
               </button>
-              <span
-                className="pointer-events-none absolute block max-w-24 truncate rounded-md px-1 text-center text-[10px] font-semibold leading-snug text-ink-2"
-                style={{
-                  left: `${u}%`,
-                  top: `calc(${100 - i}% + ${isActive ? 21 : 17}px)`,
-                  transform: "translateX(-50%)",
-                  background: "color-mix(in oklab, var(--card) 72%, transparent)",
-                  zIndex: isActive ? 29 : 9,
-                  transition: moveTransition,
-                }}
-              >
-                {t.title}
-              </span>
+              {showLabels && (
+                <span
+                  className="pointer-events-none absolute block w-max max-w-36 whitespace-normal break-words rounded-md px-1 py-px text-center text-[10px] font-semibold leading-tight text-ink-2"
+                  style={{
+                    left: `${u}%`,
+                    top: `calc(${100 - i}% + ${isActive ? 21 : 17}px)`,
+                    transform: "translateX(-50%)",
+                    background:
+                      "color-mix(in oklab, var(--card) 78%, transparent)",
+                    zIndex: isActive ? 29 : 9,
+                    transition: moveTransition,
+                  }}
+                >
+                  {t.title}
+                </span>
+              )}
             </div>
           );
         })}
