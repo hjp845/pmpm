@@ -23,6 +23,8 @@ export interface Task {
   title: string;
   status: TaskStatus;
   priority: Priority;
+  urgency: number;
+  importance: number;
   due_date: string | null;
   created_at: string;
   done_at: string | null;

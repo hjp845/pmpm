@@ -4,6 +4,7 @@ import "./globals.css";
 import { Sidebar, MobileNav } from "@/components/Sidebar";
 import { CommandPalette } from "@/components/CommandPalette";
 import { ToastProvider } from "@/components/Toast";
+import { PageContainer } from "@/components/PageContainer";
 
 const jua = Jua({
   weight: "400",
@@ -42,9 +43,7 @@ export default function RootLayout({
           <MobileNav />
           <CommandPalette />
           <main className="md:ml-60">
-            <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 md:pb-10 lg:px-8">
-              {children}
-            </div>
+            <PageContainer>{children}</PageContainer>
           </main>
         </ToastProvider>
       </body>

@@ -14,6 +14,8 @@ export async function PATCH(req: Request, ctx: Ctx) {
       title = COALESCE(${b.title ?? null}, title),
       status = COALESCE(${b.status ?? null}, status),
       priority = COALESCE(${b.priority ?? null}, priority),
+      urgency = COALESCE(${b.urgency ?? null}::int, urgency),
+      importance = COALESCE(${b.importance ?? null}::int, importance),
       project_id = CASE WHEN ${b.project_id !== undefined} THEN ${b.project_id ?? null}::int ELSE project_id END,
       due_date = CASE WHEN ${b.due_date !== undefined} THEN ${b.due_date ?? null}::date ELSE due_date END,
       done_at = CASE

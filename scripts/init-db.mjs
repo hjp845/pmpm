@@ -45,6 +45,8 @@ await sql`
     title TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'todo',
     priority TEXT NOT NULL DEFAULT 'mid',
+    urgency INT NOT NULL DEFAULT 50,
+    importance INT NOT NULL DEFAULT 50,
     due_date DATE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     done_at TIMESTAMPTZ

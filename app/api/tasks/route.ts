@@ -19,9 +19,10 @@ export async function POST(req: Request) {
   const sql = db();
   const b = await req.json();
   const rows = await sql`
-    INSERT INTO tasks (project_id, title, status, priority, due_date)
+    INSERT INTO tasks (project_id, title, status, priority, urgency, importance, due_date)
     VALUES (${b.project_id ?? null}, ${b.title}, ${b.status ?? "todo"},
-            ${b.priority ?? "mid"}, ${b.due_date ?? null})
+            ${b.priority ?? "mid"}, ${b.urgency ?? 50}, ${b.importance ?? 50},
+            ${b.due_date ?? null})
     RETURNING *
   `;
   await logActivity("task", `할 일 「${b.title}」 을(를) 추가했어요`);
