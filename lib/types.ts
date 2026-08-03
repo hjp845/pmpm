@@ -12,6 +12,7 @@ export interface Project {
   deadline: string | null;
   pinned: boolean;
   tags: string[];
+  position: number;
   created_at: string;
   task_total: number;
   task_done: number;
@@ -79,10 +80,31 @@ export const PROJECT_COLORS = [
 ];
 
 export const PROJECT_EMOJIS = [
-  "🚀", "💼", "🛍️", "☕", "🍰", "🎨", "🎮", "📱", "💻", "📚",
-  "🎵", "🎬", "🏠", "🌱", "🐻", "🐰", "🦊", "🍑", "🌈", "⭐",
-  "💡", "🔮", "🧸", "🍀", "🎯", "📦", "✈️", "🏋️", "💰", "🧁",
+  "🦄", "🐙", "🦕", "🐢", "🐳", "🦩", "🍄", "🌵", "🪴", "🌻",
+  "🍕", "🥐", "🍙", "🧋", "🍯", "🥝", "🍒", "🫐", "🍦", "🧃",
+  "🎪", "🛼", "🧶", "🪩", "🎹", "📻", "🛵", "⛺", "🪁", "🫧",
 ];
+
+// 가장 적게 쓰인 이모지·색을 골라 랜덤 배정 (겹침 최소화)
+export function pickProjectLook(
+  existing: { emoji: string; color: string }[],
+): { emoji: string; color: string } {
+  const leastUsed = (options: string[], used: string[]) => {
+    const count = new Map(options.map((o) => [o, 0]));
+    for (const u of used) if (count.has(u)) count.set(u, count.get(u)! + 1);
+    const min = Math.min(...count.values());
+    return options.filter((o) => count.get(o) === min);
+  };
+  const emojiPool = leastUsed(PROJECT_EMOJIS, existing.map((p) => p.emoji));
+  const colorPool = leastUsed(PROJECT_COLORS, existing.map((p) => p.color));
+  const emoji = emojiPool[Math.floor(Math.random() * emojiPool.length)];
+  // 같은 (이모지, 색) 조합이 이미 있으면 풀 안에서 다른 색을 시도
+  const taken = new Set(existing.map((p) => `${p.emoji}|${p.color}`));
+  const shuffled = [...colorPool].sort(() => Math.random() - 0.5);
+  const color =
+    shuffled.find((c) => !taken.has(`${emoji}|${c}`)) ?? shuffled[0];
+  return { emoji, color };
+}
 
 export const NOTE_COLORS = [
   "#fef3c7",

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, refresh } from "@/lib/hooks";
+import { api, refresh, useProjects } from "@/lib/hooks";
 import {
   STATUS_META,
   PROJECT_COLORS,
   PROJECT_EMOJIS,
+  pickProjectLook,
   type Project,
   type ProjectStatus,
 } from "@/lib/types";
@@ -44,6 +45,7 @@ export function ProjectModal({
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const toast = useToast();
+  const { data: projects } = useProjects();
 
   useEffect(() => {
     if (!open) return;
@@ -58,8 +60,9 @@ export function ProjectModal({
             deadline: editing.deadline?.slice(0, 10) ?? "",
             tags: (editing.tags ?? []).join(", "),
           }
-        : emptyForm,
+        : { ...emptyForm, ...pickProjectLook(projects ?? []) },
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing]);
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>

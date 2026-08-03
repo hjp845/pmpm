@@ -34,6 +34,7 @@ await sql`
     deadline DATE,
     pinned BOOLEAN NOT NULL DEFAULT FALSE,
     tags TEXT[] NOT NULL DEFAULT '{}',
+    position INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )
 `;

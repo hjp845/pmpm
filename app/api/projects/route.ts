@@ -16,7 +16,7 @@ export async function GET() {
         COUNT(*) FILTER (WHERE status = 'done') AS done
       FROM tasks GROUP BY project_id
     ) t ON t.project_id = p.id
-    ORDER BY p.pinned DESC, p.created_at DESC
+    ORDER BY p.position ASC, p.id ASC
   `;
   return NextResponse.json(rows);
 }
@@ -25,10 +25,11 @@ export async function POST(req: Request) {
   const sql = db();
   const b = await req.json();
   const rows = await sql`
-    INSERT INTO projects (name, emoji, color, status, description, deadline, tags)
-    VALUES (${b.name}, ${b.emoji ?? "🚀"}, ${b.color ?? "#a78bfa"},
+    INSERT INTO projects (name, emoji, color, status, description, deadline, tags, position)
+    VALUES (${b.name}, ${b.emoji ?? "🌱"}, ${b.color ?? "#a78bfa"},
             ${b.status ?? "planning"}, ${b.description ?? ""},
-            ${b.deadline ?? null}, ${b.tags ?? []})
+            ${b.deadline ?? null}, ${b.tags ?? []},
+            (SELECT COALESCE(MAX(position), 0) + 1 FROM projects))
     RETURNING *
   `;
   await logActivity("project", `새 프로젝트 「${b.name}」 을(를) 만들었어요`);

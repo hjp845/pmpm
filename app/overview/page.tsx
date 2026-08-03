@@ -14,8 +14,8 @@ import {
 } from "react";
 import { useSWRConfig } from "swr";
 import { useProjects, useTasks, api, refresh, ddayLabel, daysUntil } from "@/lib/hooks";
-import { STATUS_META, type Project, type Task } from "@/lib/types";
-import { Spinner, EmptyState, ConfirmDialog } from "@/components/ui";
+import { STATUS_META, pickProjectLook, type Project, type Task } from "@/lib/types";
+import { Spinner, ConfirmDialog } from "@/components/ui";
 import { ProjectModal } from "@/components/ProjectModal";
 import { useToast } from "@/components/Toast";
 
@@ -146,37 +146,52 @@ function Matrix({
           나중에 해도 OK 🐢
         </span>
 
-        {/* dots */}
+        {/* dots + small title labels */}
         {tasks.map((t) => {
           const { u, i } = posOf(t);
           const proj = projectOf(t.project_id);
           const color = proj?.color ?? INBOX_COLOR;
           const isActive = active === t.id;
+          const moveTransition =
+            draggingId === t.id
+              ? "none"
+              : "left .15s ease, top .15s ease";
           return (
-            <button
-              key={t.id}
-              onPointerDown={(e) => startDrag(e, t.id)}
-              onMouseEnter={() => setHovered(t.id)}
-              onMouseLeave={() => setHovered(null)}
-              aria-label={`${t.title} — 긴급 ${u}, 중요 ${i}`}
-              className="absolute grid cursor-grab place-items-center rounded-lg text-sm shadow-md active:cursor-grabbing"
-              style={{
-                left: `${u}%`,
-                top: `${100 - i}%`,
-                width: isActive ? 38 : 30,
-                height: isActive ? 38 : 30,
-                transform: "translate(-50%, -50%)",
-                background: color,
-                border: "2px solid var(--card)",
-                zIndex: isActive ? 30 : 10,
-                transition:
-                  draggingId === t.id
-                    ? "width .12s, height .12s"
-                    : "width .12s, height .12s, left .15s ease, top .15s ease",
-              }}
-            >
-              {proj?.emoji ?? "📥"}
-            </button>
+            <div key={t.id}>
+              <button
+                onPointerDown={(e) => startDrag(e, t.id)}
+                onMouseEnter={() => setHovered(t.id)}
+                onMouseLeave={() => setHovered(null)}
+                aria-label={`${t.title} — 긴급 ${u}, 중요 ${i}`}
+                className="absolute grid cursor-grab place-items-center rounded-lg text-sm shadow-md active:cursor-grabbing"
+                style={{
+                  left: `${u}%`,
+                  top: `${100 - i}%`,
+                  width: isActive ? 38 : 30,
+                  height: isActive ? 38 : 30,
+                  transform: "translate(-50%, -50%)",
+                  background: color,
+                  border: "2px solid var(--card)",
+                  zIndex: isActive ? 30 : 10,
+                  transition: `width .12s, height .12s, ${moveTransition}`,
+                }}
+              >
+                {proj?.emoji ?? "📥"}
+              </button>
+              <span
+                className="pointer-events-none absolute block max-w-24 truncate rounded-md px-1 text-center text-[10px] font-semibold leading-snug text-ink-2"
+                style={{
+                  left: `${u}%`,
+                  top: `calc(${100 - i}% + ${isActive ? 21 : 17}px)`,
+                  transform: "translateX(-50%)",
+                  background: "color-mix(in oklab, var(--card) 72%, transparent)",
+                  zIndex: isActive ? 29 : 9,
+                  transition: moveTransition,
+                }}
+              >
+                {t.title}
+              </span>
+            </div>
           );
         })}
 
@@ -237,6 +252,7 @@ interface CardProps {
   onEditProject?: () => void;
   onDeleteProject?: () => void;
   onTogglePin?: () => void;
+  headerDrag?: { onDragStart: () => void; onDragEnd: () => void };
 }
 
 function ProjectTaskCard({
@@ -254,6 +270,7 @@ function ProjectTaskCard({
   onEditProject,
   onDeleteProject,
   onTogglePin,
+  headerDrag,
 }: CardProps) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -315,7 +332,18 @@ function ProjectTaskCard({
       }}
       onDrop={drop}
     >
-      <header className="mb-2.5 flex items-center gap-2.5">
+      <header
+        className={`mb-2.5 flex items-center gap-2.5 ${headerDrag ? "cursor-grab active:cursor-grabbing" : ""}`}
+        draggable={!!headerDrag}
+        title={headerDrag ? "잡고 끌어서 카드 순서를 바꿔요" : undefined}
+        onDragStart={(e) => {
+          if (!headerDrag) return;
+          e.dataTransfer.setData("text/plain", "project");
+          e.dataTransfer.effectAllowed = "move";
+          headerDrag.onDragStart();
+        }}
+        onDragEnd={headerDrag?.onDragEnd}
+      >
         <span
           className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-lg"
           style={{ background: `color-mix(in oklab, ${color} 22%, transparent)` }}
@@ -476,6 +504,111 @@ function ProjectTaskCard({
   );
 }
 
+/* ---------------- inline new-project card ---------------- */
+
+function NewProjectCard({
+  projects,
+  open,
+  setOpen,
+  dragProject,
+  onDropProjectEnd,
+}: {
+  projects: Project[];
+  open: boolean;
+  setOpen: (v: boolean) => void;
+  dragProject: number | null;
+  onDropProjectEnd: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [look, setLook] = useState<{ emoji: string; color: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+
+  useEffect(() => {
+    if (open && !look) setLook(pickProjectLook(projects));
+    if (!open) {
+      setLook(null);
+      setName("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const cancel = () => setOpen(false);
+
+  const create = async () => {
+    if (!name.trim() || busy || !look) return;
+    setBusy(true);
+    try {
+      await api("POST", "/api/projects", {
+        name: name.trim(),
+        emoji: look.emoji,
+        color: look.color,
+        status: "planning",
+      });
+      refresh("/api/projects", "/api/activities");
+      toast("새 프로젝트가 태어났어요!", "🎊");
+      setOpen(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!open)
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        onDragOver={(e) => {
+          if (dragProject !== null) e.preventDefault();
+        }}
+        onDrop={(e) => {
+          if (dragProject !== null) {
+            e.preventDefault();
+            onDropProjectEnd();
+          }
+        }}
+        className="pressable grid min-h-32 place-items-center rounded-[1.25rem] border-2 border-dashed border-line text-muted transition-colors hover:border-[var(--accent)] hover:bg-accent-soft/40 hover:text-accent"
+      >
+        <span className="flex flex-col items-center gap-1 text-sm font-bold">
+          <span className="text-2xl">＋</span>
+          새 프로젝트
+        </span>
+      </button>
+    );
+
+  return (
+    <section className="card flex flex-col gap-3 p-4 ring-2 ring-[var(--accent)]">
+      <div className="flex items-center gap-2.5">
+        <span
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-lg"
+          style={{
+            background: `color-mix(in oklab, ${look?.color ?? "#ccc"} 22%, transparent)`,
+          }}
+        >
+          {look?.emoji ?? "✨"}
+        </span>
+        <input
+          className="input py-2 text-sm"
+          placeholder="프로젝트 이름을 입력하고 Enter"
+          value={name}
+          autoFocus
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") create();
+            if (e.key === "Escape") cancel();
+          }}
+          onBlur={() => {
+            if (!name.trim()) cancel();
+          }}
+        />
+      </div>
+      <p className="text-[11px] text-muted">
+        아이콘과 색은 자동으로 골라뒀어요 · Enter 생성 · Esc 취소 · 자세한 설정은
+        생성 후 ✏️ 에서
+      </p>
+    </section>
+  );
+}
+
 /* ---------------- page ---------------- */
 
 export default function OverviewPage() {
@@ -488,6 +621,9 @@ export default function OverviewPage() {
   const [posOverride, setPosOverride] = useState<Record<number, Pos>>({});
   const [hideDoneProjects, setHideDoneProjects] = useState(true);
   const [dragTask, setDragTask] = useState<number | null>(null);
+  const [dragProject, setDragProject] = useState<number | null>(null);
+  const [projOver, setProjOver] = useState<number | null>(null);
+  const [draftOpen, setDraftOpen] = useState(false);
   const [projModalOpen, setProjModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
@@ -583,6 +719,29 @@ export default function OverviewPage() {
     toast(`「${p.name}」 을(를) 보내주었어요`, "👋");
   };
 
+  // beforeId 앞에 끼워넣기 (null이면 맨 뒤로)
+  const dropProject = async (beforeId: number | null) => {
+    if (dragProject === null) return;
+    const dragged = dragProject;
+    setDragProject(null);
+    setProjOver(null);
+    if (dragged === beforeId) return;
+    const ids = (projects ?? []).map((p) => p.id).filter((id) => id !== dragged);
+    const at = beforeId === null ? ids.length : ids.indexOf(beforeId);
+    ids.splice(at === -1 ? ids.length : at, 0, dragged);
+    const orderMap = new Map(ids.map((id, idx) => [id, idx]));
+    mutate(
+      "/api/projects",
+      (curr: Project[] | undefined) =>
+        [...(curr ?? [])]
+          .map((p) => ({ ...p, position: orderMap.get(p.id) ?? p.position }))
+          .sort((a, b) => a.position - b.position),
+      { revalidate: false },
+    );
+    await api("POST", "/api/projects/reorder", { ids });
+    refresh("/api/projects");
+  };
+
   /* ----- matrix drag ----- */
 
   const onDragMove = useCallback((id: number, pos: Pos) => {
@@ -644,13 +803,7 @@ export default function OverviewPage() {
             />
             🎉 완료된 프로젝트 숨기기
           </label>
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              setEditingProject(null);
-              setProjModalOpen(true);
-            }}
-          >
+          <button className="btn btn-primary" onClick={() => setDraftOpen(true)}>
             ＋ 새 프로젝트
           </button>
         </div>
@@ -660,29 +813,62 @@ export default function OverviewPage() {
         {/* left: all projects + tasks */}
         <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {visibleProjects.map((p) => (
-            <ProjectTaskCard
+            <div
               key={p.id}
-              project={p}
-              tasks={(tasks ?? []).filter((t) => t.project_id === p.id)}
-              onEditProject={() => {
-                setEditingProject(p);
-                setProjModalOpen(true);
+              onDragOver={(e) => {
+                if (dragProject !== null && dragProject !== p.id) {
+                  e.preventDefault();
+                  setProjOver(p.id);
+                }
               }}
-              onDeleteProject={() => setDeletingProject(p)}
-              onTogglePin={() => togglePin(p)}
-              {...cardCommon}
-            />
-          ))}
-          <ProjectTaskCard project={null} tasks={inboxTasks} {...cardCommon} />
-          {visibleProjects.length === 0 && inboxTasks.length === 0 && (
-            <div className="md:col-span-2 2xl:col-span-3">
-              <EmptyState
-                emoji="🌱"
-                title="프로젝트가 없어요"
-                subtitle="오른쪽 위 「새 프로젝트」 버튼으로 시작해 보세요!"
+              onDragLeave={(e) => {
+                if (
+                  !(e.currentTarget as HTMLElement).contains(
+                    e.relatedTarget as Node,
+                  )
+                )
+                  setProjOver((o) => (o === p.id ? null : o));
+              }}
+              onDrop={(e) => {
+                if (dragProject !== null) {
+                  e.preventDefault();
+                  dropProject(p.id);
+                }
+              }}
+              className={`rounded-[1.25rem] transition-opacity ${
+                dragProject !== null && projOver === p.id
+                  ? "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg)]"
+                  : ""
+              } ${dragProject === p.id ? "opacity-40" : ""}`}
+            >
+              <ProjectTaskCard
+                project={p}
+                tasks={(tasks ?? []).filter((t) => t.project_id === p.id)}
+                onEditProject={() => {
+                  setEditingProject(p);
+                  setProjModalOpen(true);
+                }}
+                onDeleteProject={() => setDeletingProject(p)}
+                onTogglePin={() => togglePin(p)}
+                headerDrag={{
+                  onDragStart: () => setDragProject(p.id),
+                  onDragEnd: () => {
+                    setDragProject(null);
+                    setProjOver(null);
+                  },
+                }}
+                {...cardCommon}
               />
             </div>
-          )}
+          ))}
+          <NewProjectCard
+            projects={projects ?? []}
+            open={draftOpen}
+            setOpen={setDraftOpen}
+            dragProject={dragProject}
+            onDropProjectEnd={() => dropProject(null)}
+          />
+          <ProjectTaskCard project={null} tasks={inboxTasks} {...cardCommon} />
         </div>
 
         {/* right: sticky matrix */}
@@ -716,7 +902,8 @@ export default function OverviewPage() {
             </span>
           </div>
           <p className="mt-3 text-center text-xs text-muted">
-            💡 목록의 ⠿ 를 끌면 순서가 바뀌고, 다른 프로젝트 카드에 놓으면 이동해요
+            💡 할 일은 ⠿ 로 순서 변경·프로젝트 이동, 카드는 머리글을 잡고 끌면
+            순서가 바뀌어요
           </p>
         </div>
       </div>
