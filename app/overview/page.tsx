@@ -15,7 +15,7 @@ import {
 import { useSWRConfig } from "swr";
 import { useProjects, useTasks, api, refresh, ddayLabel, daysUntil } from "@/lib/hooks";
 import { STATUS_META, pickProjectLook, type Project, type Task } from "@/lib/types";
-import { Spinner, ConfirmDialog, Icon } from "@/components/ui";
+import { Spinner, ConfirmDialog, Icon, firstLetter } from "@/components/ui";
 import { ProjectModal } from "@/components/ProjectModal";
 import { FlowBoard } from "@/components/FlowBoard";
 import { useToast } from "@/components/Toast";
@@ -210,7 +210,7 @@ function Matrix({
                     className="pointer-events-none h-full w-full rounded-md object-cover"
                   />
                 ) : (
-                  (proj?.emoji ?? "📥")
+                  <Icon emoji={proj?.emoji ?? "📥"} />
                 )}
               </button>
               {showLabels && (
@@ -628,7 +628,7 @@ function NewProjectCard({
     try {
       await api("POST", "/api/projects", {
         name: name.trim(),
-        emoji: look.emoji,
+        emoji: firstLetter(name),
         color: look.color,
         status: "planning",
       });
@@ -666,12 +666,12 @@ function NewProjectCard({
     <section className="card flex flex-col gap-3 p-4 ring-2 ring-[var(--accent)]">
       <div className="flex items-center gap-2.5">
         <span
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-lg"
+          className="font-display grid h-9 w-9 shrink-0 place-items-center rounded-xl text-lg"
           style={{
             background: `color-mix(in oklab, ${look?.color ?? "#ccc"} 22%, transparent)`,
           }}
         >
-          {look?.emoji ?? "✨"}
+          {name.trim() ? firstLetter(name) : "✨"}
         </span>
         <input
           className="input py-2 text-sm"
@@ -689,8 +689,8 @@ function NewProjectCard({
         />
       </div>
       <p className="text-[11px] text-muted">
-        아이콘과 색은 자동으로 골라뒀어요 · Enter 생성 · Esc 취소 · 자세한 설정은
-        생성 후 ✏️ 에서
+        아이콘은 이름 첫 글자, 색은 자동 배정 · Enter 생성 · Esc 취소 ·
+        이모지/이미지는 생성 후 ✏️ 에서
       </p>
     </section>
   );

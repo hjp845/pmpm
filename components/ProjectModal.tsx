@@ -10,8 +10,11 @@ import {
   type Project,
   type ProjectStatus,
 } from "@/lib/types";
-import { Modal } from "@/components/ui";
+import { Modal, firstLetter } from "@/components/ui";
 import { useToast } from "@/components/Toast";
+
+const isLetterIcon = (s: string) =>
+  !!s && !/\p{Extended_Pictographic}/u.test(s);
 
 interface FormState {
   name: string;
@@ -45,6 +48,7 @@ export function ProjectModal({
   editing: Project | null;
 }) {
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [autoLetter, setAutoLetter] = useState(true);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
@@ -64,7 +68,10 @@ export function ProjectModal({
             tags: (editing.tags ?? []).join(", "),
             icon: editing.icon ?? null,
           }
-        : { ...emptyForm, ...pickProjectLook(projects ?? []) },
+        : { ...emptyForm, color: pickProjectLook(projects ?? []).color },
+    );
+    setAutoLetter(
+      editing ? isLetterIcon(editing.emoji) && !editing.icon : true,
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing]);
@@ -81,7 +88,7 @@ export function ProjectModal({
     try {
       const body = {
         name: form.name.trim(),
-        emoji: form.emoji,
+        emoji: autoLetter && !form.icon ? firstLetter(form.name) : form.emoji,
         color: form.color,
         status: form.status,
         description: form.description,
@@ -122,6 +129,10 @@ export function ProjectModal({
             {form.icon ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={form.icon} alt="" className="h-full w-full object-cover" />
+            ) : autoLetter ? (
+              <span className="font-display">
+                {form.name.trim() ? firstLetter(form.name) : "✨"}
+              </span>
             ) : (
               form.emoji
             )}
@@ -144,15 +155,20 @@ export function ProjectModal({
             <div className="flex gap-1.5">
               <button
                 className="chip"
+                data-on={autoLetter && !form.icon}
+                onClick={() => {
+                  setAutoLetter(true);
+                  set("icon", null);
+                }}
+              >
+                Aa 이름 첫 글자
+              </button>
+              <button
+                className="chip"
                 onClick={() => fileRef.current?.click()}
               >
                 🖼️ 이미지 업로드
               </button>
-              {form.icon && (
-                <button className="chip" onClick={() => set("icon", null)}>
-                  ↩️ 이모지로 되돌리기
-                </button>
-              )}
             </div>
             <input
               ref={fileRef}
@@ -178,9 +194,10 @@ export function ProjectModal({
                 onClick={() => {
                   set("emoji", e);
                   set("icon", null);
+                  setAutoLetter(false);
                 }}
                 className={`pressable grid h-9 w-9 place-items-center rounded-xl text-lg ${
-                  form.emoji === e && !form.icon
+                  form.emoji === e && !form.icon && !autoLetter
                     ? "bg-accent-soft ring-2 ring-[var(--accent)]"
                     : "hover:bg-card-2"
                 }`}

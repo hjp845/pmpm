@@ -102,7 +102,7 @@ export function EmptyState({
   );
 }
 
-// 프로젝트 아이콘: 업로드 이미지가 있으면 이미지, 없으면 이모지
+// 프로젝트 아이콘: 업로드 이미지 > 이모지 > 이름 첫 글자 모노그램
 export function Icon({
   emoji,
   icon,
@@ -112,7 +112,15 @@ export function Icon({
   icon?: string | null;
   className?: string;
 }) {
-  if (!icon) return <>{emoji}</>;
+  if (!icon) {
+    const isLetter =
+      !!emoji && !/\p{Extended_Pictographic}/u.test(emoji);
+    return isLetter ? (
+      <span className="font-display leading-none">{emoji}</span>
+    ) : (
+      <>{emoji}</>
+    );
+  }
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -122,6 +130,12 @@ export function Icon({
       className={`inline-block h-[1.25em] w-[1.25em] rounded-[0.3em] object-cover align-[-0.2em] ${className}`}
     />
   );
+}
+
+// 이름에서 아이콘용 첫 글자 추출 (서로게이트 안전)
+export function firstLetter(name: string): string {
+  const ch = Array.from(name.trim())[0] ?? "✨";
+  return ch.toUpperCase();
 }
 
 export function Spinner() {
