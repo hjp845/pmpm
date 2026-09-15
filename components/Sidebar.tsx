@@ -14,6 +14,7 @@ const NAV = [
   { href: "/board", label: "칸반보드", emoji: "📋" },
   { href: "/calendar", label: "캘린더", emoji: "🗓️" },
   { href: "/notes", label: "메모", emoji: "📝" },
+  { href: "/ideas", label: "아이디어 랩", emoji: "💡" },
 ];
 
 export function Sidebar() {
